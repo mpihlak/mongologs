@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"regexp"
 
 	"github.com/mpihlak/mongolog"
@@ -21,17 +20,6 @@ func main() {
 			`(?P<component>[^\s]+)\s+` +
 			`(?P<context>[^\s]+)\s` +
 			`(?P<message>.*)`)
-	match := loglineRe.FindStringSubmatch(logLine)
-	messageBody := ""
-	for i, name := range loglineRe.SubexpNames() {
-		if i != 0 {
-			if name == "message" {
-				messageBody = match[i]
-			}
-			fmt.Printf("%s: %v\n", name, match[i])
-		}
-	}
-
 	payloadRe := regexp.MustCompile(
 		`command (?P<collection>[^\s]+)\scommand:\s` +
 			`(?P<command>[^\s]+)\s` +
@@ -40,39 +28,23 @@ func main() {
 			`(?P<planinfo>{.*})\sprotocol:` +
 			`(?P<protocol>[^\s]+)\s` +
 			`(?P<duration>[0-9]+)ms`)
-	match = payloadRe.FindStringSubmatch(messageBody)
 
-	fmt.Println()
-	fmt.Printf("body: %v\n", messageBody)
-	fmt.Println()
-	commandParams := ""
-	planInfo := ""
+	for i := 0; i < 1000000; i++ {
+		match := loglineRe.FindStringSubmatch(logLine)
+		messageBody := match[5]
 
-	for i, name := range payloadRe.SubexpNames() {
-		if i != 0 && i < len(match) {
-			if name == "commandparams" {
-				commandParams = match[i]
-			} else if name == "planinfo" {
-				planInfo = match[i]
-			}
-			fmt.Printf("%s: %v\n", name, match[i])
+		match = payloadRe.FindStringSubmatch(messageBody)
+		commandParams := match[3]
+		planInfo := match[5]
+
+		_, err = mongolog.ParseMessage(parser, planInfo)
+		if err != nil {
+			panic(err)
+		}
+
+		_, err = mongolog.ParseMessage(parser, commandParams)
+		if err != nil {
+			panic(err)
 		}
 	}
-
-	_ = planInfo
-
-	/*
-	fmt.Println("parsing planinfo")
-	_, err = mongolog.ParseMessage(parser, planInfo)
-	if err != nil {
-		panic(err)
-	}
-	*/
-
-	fmt.Println("parsing commandparams")
-	_, err = mongolog.ParseMessage(parser, commandParams)
-	if err != nil {
-		panic(err)
-	}
-
 }

@@ -100,6 +100,37 @@ func TestParseMessageArrayValues(t *testing.T) {
 	}
 }
 
+func TestParseMessageMixedMode(t *testing.T) {
+	parser, _ := NewPseudoJsonParser()
+	testMessage := `x: 1  y: 2 { z: 3 }`
+
+	msg, err := ParseMessage(parser, testMessage)
+	if err != nil {
+		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
+	}
+
+	var expectedValues = map[string]float64{
+		"x": 1, "y":2, "z": 3,
+	}
+	for k, v := range expectedValues {
+		actualValue := msg.elems[k].NumericValue
+		if actualValue != v {
+			t.Errorf("Expecting %v=%v, got %v\n", k, v, actualValue)
+		}
+	}
+}
+
+func TestParseMessageMixedModeEdges(t *testing.T) {
+	parser, _ := NewPseudoJsonParser()
+	testMessage := `{ x: 1} y: 2 `
+
+	_, err := ParseMessage(parser, testMessage)
+	if err != nil {
+		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
+	}
+}
+
+
 func TestForParseErrors(t *testing.T) {
 	testMessages := []string{
 		`{ kala: "maja" }`,
@@ -117,12 +148,10 @@ func TestForParseErrors(t *testing.T) {
 		   foo.category: { $in: [ "alley", "home" ] } }, $db: "FooDb" }`,
 		// And this is interesting because it contains all sorts of shit that is outside
 		// of curly braces. Should we attempt to support this or parse out with regex?
-		/*
-			`{ foo.FooObjectId: 1, foo.category: 1, foo.min_time: -1, foo.max_time: 1 }
-			   keysExamined:50314 docsExamined:2 cursorExhausted:1 numYields:393 nreturned:2 reslen:14980
-			   locks:{ Global: { acquireCount: { r: 788 } }, Database: { acquireCount: { r: 394 } },
-			   Collection: { acquireCount: { r: 394 } } }`,
-		*/
+		`{ foo.FooObjectId: 1, foo.category: 1, foo.min_time: -1, foo.max_time: 1 }
+		   keysExamined:50314 docsExamined:2 cursorExhausted:1 numYields:393 nreturned:2 reslen:14980
+		   locks:{ Global: { acquireCount: { r: 788 } }, Database: { acquireCount: { r: 394 } },
+		   Collection: { acquireCount: { r: 394 } } }`,
 	}
 	parser, err := NewPseudoJsonParser()
 	if err != nil {

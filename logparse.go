@@ -8,7 +8,8 @@ import (
 type ElementMap map[string]*Value
 
 type PseudoJson struct {
-	Elements []*KeyValue `"{" @@ { "," @@ } "}"`
+	// Elements []*KeyValue `"{" @@ { "," @@ } "}"`
+	Elements []*KeyValue `(@@  { (@@ | "{" @@ "}") }) | (("{" @@ { ","  @@ } "}" ) { @@ })`
 
 	// Key the elements by KeyValue for convenient access
 	elems ElementMap
