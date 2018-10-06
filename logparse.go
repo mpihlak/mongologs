@@ -5,7 +5,7 @@ import (
 	"github.com/alecthomas/participle"
 )
 
-type ElementMap map[string]*KeyValue
+type ElementMap map[string]*Value
 
 type PseudoJson struct {
 	Elements []*KeyValue `"{" @@ { "," @@ } "}"`
@@ -17,10 +17,14 @@ type PseudoJson struct {
 type KeyValue struct {
 	// Key is an identifier that maybe has dots and maybe starts with a $ sign.
 	Key string `@((Ident | "$" Ident) { "." Ident }) ":"`
+	Val *Value `@@`
+}
 
+type Value struct {
 	StringValue   string      `( @String`
 	NumericValue  float64     `| @(["-"] (Int | Float))`
 	ObjectIdValue string      `| "ObjectId" "(" @String ")"`
+	ArrayValue    []*Value    `| "[" @@ { "," @@ } "]"`
 	Nested        *PseudoJson `| @@ )`
 }
 
@@ -38,9 +42,9 @@ func NewPseudoJsonParser() (PseudoJsonParser, error) {
 func mapElementKeys(mongoJson *PseudoJson) {
 	mongoJson.elems = make(ElementMap)
 	for _, e := range mongoJson.Elements {
-		mongoJson.elems[e.Key] = e
-		if e.Nested != nil {
-			mapElementKeys(e.Nested)
+		mongoJson.elems[e.Key] = e.Val
+		if e.Val.Nested != nil {
+			mapElementKeys(e.Val.Nested)
 		}
 	}
 }

@@ -59,13 +59,17 @@ func main() {
 		}
 	}
 
+	_ = planInfo
+
+	/*
 	fmt.Println("parsing planinfo")
 	_, err = mongolog.ParseMessage(parser, planInfo)
 	if err != nil {
 		panic(err)
 	}
+	*/
 
-	fmt.Println("parsing commandparams`")
+	fmt.Println("parsing commandparams")
 	_, err = mongolog.ParseMessage(parser, commandParams)
 	if err != nil {
 		panic(err)

@@ -71,17 +71,34 @@ func TestParseMessageNegativeNumbers(t *testing.T) {
 		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
 	}
 
-	a := msg.elems["a"].NumericValue 
+	a := msg.elems["a"].NumericValue
 	if a != -1 {
 		t.Errorf("Expecting -1, got %v\n", a)
 	}
-	
-	b := msg.elems["b"].NumericValue 
+
+	b := msg.elems["b"].NumericValue
 	if b != 2 {
 		t.Errorf("Expecting 2, got %v\n", b)
 	}
 }
 
+func TestParseMessageArrayValues(t *testing.T) {
+	parser, _ := NewPseudoJsonParser()
+	testMessage := `{ a: [ -42, 55, 9 ] }`
+
+	msg, err := ParseMessage(parser, testMessage)
+	if err != nil {
+		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
+	}
+
+	expectValues := []float64{-42, 55, 9}
+	for pos, v := range expectValues {
+		a := msg.elems["a"].ArrayValue[pos].NumericValue
+		if a != v {
+			t.Errorf("Expecting %v, got %v\n", v, a)
+		}
+	}
+}
 
 func TestForParseErrors(t *testing.T) {
 	testMessages := []string{
@@ -95,19 +112,17 @@ func TestForParseErrors(t *testing.T) {
 		   baz.max_time: { $gte: 1523022862.698 }, baz.min_time: { $lte: 1523022882.698 },
 		   baz.category: "catinabag" }, $readPreference: { mode: "secondaryPreferred" }, $db: "FooDb" }`,
 		// This next one is interesting because it contains a bracketed list
-		/*
 		`{ find: "mycatpicscollection", filter: { foo.FooObjectId: ObjectId('5a8c3a142053a407a936745e'),
 		   foo.max_time: { $gte: 1534769530.5 }, foo.min_time: { $lte: 1534769548.47 },
 		   foo.category: { $in: [ "alley", "home" ] } }, $db: "FooDb" }`,
-			 */
 		// And this is interesting because it contains all sorts of shit that is outside
 		// of curly braces. Should we attempt to support this or parse out with regex?
 		/*
-		`{ foo.FooObjectId: 1, foo.category: 1, foo.min_time: -1, foo.max_time: 1 }
-		   keysExamined:50314 docsExamined:2 cursorExhausted:1 numYields:393 nreturned:2 reslen:14980
-		   locks:{ Global: { acquireCount: { r: 788 } }, Database: { acquireCount: { r: 394 } },
-		   Collection: { acquireCount: { r: 394 } } }`,
-			 */
+			`{ foo.FooObjectId: 1, foo.category: 1, foo.min_time: -1, foo.max_time: 1 }
+			   keysExamined:50314 docsExamined:2 cursorExhausted:1 numYields:393 nreturned:2 reslen:14980
+			   locks:{ Global: { acquireCount: { r: 788 } }, Database: { acquireCount: { r: 394 } },
+			   Collection: { acquireCount: { r: 394 } } }`,
+		*/
 	}
 	parser, err := NewPseudoJsonParser()
 	if err != nil {
