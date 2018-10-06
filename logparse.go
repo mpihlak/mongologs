@@ -19,7 +19,7 @@ type KeyValue struct {
 	Key string `@((Ident | "$" Ident) { "." Ident }) ":"`
 
 	StringValue   string      `( @String`
-	NumericValue  float64     `| @(Int | Float)`
+	NumericValue  float64     `| @(["-"] (Int | Float))`
 	ObjectIdValue string      `| "ObjectId" "(" @String ")"`
 	Nested        *PseudoJson `| @@ )`
 }
