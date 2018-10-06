@@ -1,0 +1,154 @@
+package mongolog
+
+import (
+	"regexp"
+	"testing"
+)
+
+func TestParseMessage(t *testing.T) {
+	parser, _ := NewPseudoJsonParser()
+	testMessage := `{
+		count.x: "mycatpicscollection",
+		query: {
+			MyObjectId: ObjectId('5a2fc7bd9b45c7117bee26c5'),
+			baz.max_time: { $gte: 1523022862.698 },
+			fooLimit: 42,
+			category: "bagfoo"
+		},
+		$readPreference: {
+			mode: "secondaryPreferred"
+		},
+		$db: "FooDb"
+	}`
+
+	msg, err := ParseMessage(parser, testMessage)
+	if err != nil {
+		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
+	}
+
+	var expectedStringValues = map[string]string{
+		"count.x": "mycatpicscollection",
+		"$db":     "FooDb",
+	}
+
+	for k, v := range expectedStringValues {
+		if msg.elems[k].StringValue != v {
+			t.Errorf("Expected: %v: to be '%v', got '%v'", k, v, msg.elems[k].StringValue)
+		}
+	}
+
+	// Look at "query" fields
+	q := msg.elems["query"].Nested
+	botstring := q.elems["MyObjectId"].ObjectIdValue
+	if botstring != "5a2fc7bd9b45c7117bee26c5" {
+		t.Errorf("query MyObjectId mismatch, got %v", botstring)
+	}
+	if q.elems["category"].StringValue != "bagfoo" {
+		t.Errorf("query category mismatch, got %v", q.elems["category"].StringValue)
+	}
+	bazMaxTime := q.elems["baz.max_time"].Nested.elems["$gte"].NumericValue
+	if bazMaxTime != 1523022862.698 {
+		t.Errorf("baz.max_time mismatch, got %v", bazMaxTime)
+	}
+	fooLimit := q.elems["fooLimit"].NumericValue
+	if fooLimit != 42 {
+		t.Errorf("fooLimit mismatch, got %v", fooLimit)
+	}
+
+	// Look at readPreference
+	readPreference := msg.elems["$readPreference"].Nested.elems["mode"].StringValue
+	if readPreference != "secondaryPreferred" {
+		t.Errorf("$readPreference mismatch, got %v", readPreference)
+	}
+}
+
+func TestForParseErrors(t *testing.T) {
+	testMessages := []string{
+		`{ kala: "maja" }`,
+		`{ kala: "maja", puu: "juur" }`,
+		`{ kala: "maja", int: 1234, float: 12.34 }`,
+		`{ driver: { name: "PyMongo", version: "3.4.0" }, os: { type: "Linux" } }`,
+		`{ kala: ObjectId('5a2fc7bd9b45c7117bee26c5') }`,
+		`{ $kala: "maja" }`,
+		`{ count: "mycatpicscollection", query: { MyObjectId: ObjectId('5a2fc7bd9b45c7117bee26c5'),
+		   baz.max_time: { $gte: 1523022862.698 }, baz.min_time: { $lte: 1523022882.698 },
+		   baz.category: "catinabag" }, $readPreference: { mode: "secondaryPreferred" }, $db: "FooDb" }`,
+		// `planSummary: IXSCAN { MyObjectId: 1, baz.category: 1, baz.min_time: -1,
+		//  baz.max_time: 1 } keysExamined:8870 docsExamined:0 numYields:69 reslen:169
+		//  locks:{ Global: { acquireCount: { r: 140 } }, Database: { acquireCount: { r: 70 } },
+		//  Collection: { acquireCount: { r: 70 } } } protocol:op_query 33ms`
+	}
+	parser, err := NewPseudoJsonParser()
+	if err != nil {
+		t.Errorf("Error initializing parser: %v\n", err)
+	}
+
+	for _, v := range testMessages {
+		if _, err := ParseMessage(parser, v); err != nil {
+			t.Errorf("unable to parse message: %v: %v\n", v, err)
+		}
+	}
+}
+
+func benchmarkParseMessage(testMessage string, b *testing.B) {
+	parser, err := NewPseudoJsonParser()
+	if err != nil {
+		b.Errorf("Error initializing parser: %v\n", err)
+	}
+
+	for i := 0; i < b.N; i++ {
+		if _, err := ParseMessage(parser, testMessage); err != nil {
+			b.Errorf("Cannot parse: %v\n", testMessage)
+		}
+	}
+}
+
+func BenchmarkParseMessageSmall(b *testing.B) {
+	benchmarkParseMessage(`{ a: 1 }`, b)
+}
+
+func BenchmarkParseMessageMedium(b *testing.B) {
+	benchmarkParseMessage(`{ driver: { name: "PyMongo", version: "3.4.0" }, os: { type: "Linux" } }`, b)
+}
+
+func BenchmarkParseMessageLarge(b *testing.B) {
+	benchmarkParseMessage(`{ 
+	  count: "mycatpicscollection", query: { MyObjectId: ObjectId('5a2fc7bd9b45c7117bee26c5'),
+	  baz.max_time: { $gte: 1523022862.698 }, baz.min_time: { $lte: 1523022882.698 },
+	  baz.category: "catinabag" }, $readPreference: { mode: "secondaryPreferred" }, $db: "FooDb"}`, b)
+}
+
+// Compare against a regex based parser
+func TestParseMessageRegex(t *testing.T) {
+	testMessage := `{ driver: { name: "PyMongo", version: "3.4.0" }, os: { type: "Linux" } }`
+	re := regexp.MustCompile(`{ driver: { name: "(?P<driverName>.*)", version: "(?P<driverVersion>.*)" }, os: { type: "(?P<osType>.*)" } }`)
+	match := re.FindStringSubmatch(testMessage)
+	matches := make(map[string]string)
+	for i, name := range re.SubexpNames() {
+		if i != 0 {
+			matches[name] = match[i]
+		}
+	}
+
+	var expectMatches = map[string]string{
+		"driverName":    "PyMongo",
+		"driverVersion": "3.4.0",
+		"osType":        "Linux",
+	}
+
+	for k, v := range expectMatches {
+		if matches[k] != v {
+			t.Errorf("Expecting %v=%v, got %v\n", k, v, matches[k])
+		}
+	}
+}
+
+// Compare against a regex based parser
+func BenchmarkParseMessageRegexMedium(b *testing.B) {
+	testMessage := `{ driver: { name: "PyMongo", version: "3.4.0" }, os: { type: "Linux" } }`
+	re := regexp.MustCompile(`{ driver: { name: "(?P<driverName>.*)", version: "(?P<driverVersion>.*)" }, os: { type: "(?P<osType>.*)" } }`)
+
+	for i := 0; i < b.N; i++ {
+		_ = re.FindStringSubmatch(testMessage)
+	}
+}
