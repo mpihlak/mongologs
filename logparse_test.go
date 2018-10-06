@@ -73,10 +73,16 @@ func TestForParseErrors(t *testing.T) {
 		`{ count: "mycatpicscollection", query: { MyObjectId: ObjectId('5a2fc7bd9b45c7117bee26c5'),
 		   baz.max_time: { $gte: 1523022862.698 }, baz.min_time: { $lte: 1523022882.698 },
 		   baz.category: "catinabag" }, $readPreference: { mode: "secondaryPreferred" }, $db: "FooDb" }`,
-		// `planSummary: IXSCAN { MyObjectId: 1, baz.category: 1, baz.min_time: -1,
-		//  baz.max_time: 1 } keysExamined:8870 docsExamined:0 numYields:69 reslen:169
-		//  locks:{ Global: { acquireCount: { r: 140 } }, Database: { acquireCount: { r: 70 } },
-		//  Collection: { acquireCount: { r: 70 } } } protocol:op_query 33ms`
+		// This next one is interesting because it contains a bracketed list
+		`{ find: "mycatpicscollection", filter: { foo.FooObjectId: ObjectId('5a8c3a142053a407a936745e'),
+		   foo.max_time: { $gte: 1534769530.5 }, foo.min_time: { $lte: 1534769548.47 },
+		   foo.category: { $in: [ "alley", "home" ] } }, $db: "FooDb" }`,
+		// And this is interesting because it contains all sorts of shit that is outside
+		// of curly braces. Should we attempt to support this or parse out with regex?
+		`{ foo.FooObjectId: 1, foo.category: 1, foo.min_time: -1, foo.max_time: 1 }
+		   keysExamined:50314 docsExamined:2 cursorExhausted:1 numYields:393 nreturned:2 reslen:14980
+		   locks:{ Global: { acquireCount: { r: 788 } }, Database: { acquireCount: { r: 394 } },
+		   Collection: { acquireCount: { r: 394 } } }`,
 	}
 	parser, err := NewPseudoJsonParser()
 	if err != nil {
