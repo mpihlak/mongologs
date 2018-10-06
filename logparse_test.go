@@ -64,15 +64,21 @@ func TestParseMessage(t *testing.T) {
 
 func TestParseMessageNegativeNumbers(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
-	testMessage := `{ a: -1 }`
+	testMessage := `{ a: -1, b: 2 }`
 
 	msg, err := ParseMessage(parser, testMessage)
 	if err != nil {
 		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
 	}
 
-	if msg.elems["a"].NumericValue != -1 {
-		t.Errorf("Expecting -1, got %v\n", msg.elems["a"].NumericValue)
+	a := msg.elems["a"].NumericValue 
+	if a != -1 {
+		t.Errorf("Expecting -1, got %v\n", a)
+	}
+	
+	b := msg.elems["b"].NumericValue 
+	if b != 2 {
+		t.Errorf("Expecting 2, got %v\n", b)
 	}
 }
 
