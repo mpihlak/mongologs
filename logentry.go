@@ -24,6 +24,7 @@ type Connection struct {
 type LogParser struct {
 	commandParametersParser MongoLogParser
 	planSummaryParser       MongoLogParser
+	connectionMetaParser	MongoLogParser
 
 	connectionMap map[string]*Connection
 }
@@ -33,27 +34,47 @@ func NewLogParser() (parser LogParser, err error) {
 	if err != nil {
 		return parser, fmt.Errorf("Cannot initialize commandParametersParser: %v", err)
 	}
+
 	parser.planSummaryParser, err = NewPlanSummaryParser()
 	if err != nil {
 		return parser, fmt.Errorf("Cannot initialize planSummaryParser: %v", err)
 	}
 
-	parser.connectionMap = make(map[string]*Connection)
+	parser.connectionMetaParser, err = NewCommandParametersParser()
+	if err != nil {
+		return parser, fmt.Errorf("Cannot initialize connectionMetaParser: %v", err)
+	}
 
+	parser.connectionMap = make(map[string]*Connection)
 	return
 }
 
-func handleNewConnection(parser LogParser, entry MongoLogEntry, connParams map[string]string) {
+func handleNewConnection(parser LogParser, entry *MongoLogEntry, connParams map[string]string) {
 	conn := &Connection{
 		ConnectionId: "[conn" + connParams["id"] + "]",
 		IpAddress:    connParams["ip"],
 		Port:         connParams["port"],
 	}
 	parser.connectionMap[conn.ConnectionId] = conn
+	entry.ConnectionInfo = conn
 }
 
-func handleCloseConnection(parser LogParser, entry MongoLogEntry) {
-	delete(parser.connectionMap, entry.Context)
+func handleCloseConnection(parser LogParser, entry *MongoLogEntry) {
+	if conn, ok := parser.connectionMap[entry.Context]; ok {
+		entry.ConnectionInfo = conn
+		delete(parser.connectionMap, entry.Context)
+	}
+}
+
+func handleConnectionMetadata(parser LogParser, entry MongoLogEntry, connParams map[string]string) {
+	if conn, ok := parser.connectionMap[entry.Context]; ok {
+		// Parse the metadata payload and add to connection
+		connMeta, err := ParsePseudoJson(parser.connectionMetaParser, connParams["metadata"])
+		if err == nil {
+			_  = conn
+			_ = connMeta
+		}
+	}
 }
 
 // ParseLogEntry parses the MongoDb log line into MongoLogEntry structure
@@ -72,34 +93,23 @@ func ParseLogEntry(parser LogParser, logLine string) (result MongoLogEntry, err 
 		if result.Context == "[listener]" {
 			connParams := RegexpMatch(MongoNewConnectionRegex, result.LogMessage)
 			if connParams != nil {
-				handleNewConnection(result, connParams)
+				handleNewConnection(parser, &result, connParams)
 			}
 		} else {
 			connParams := RegexpMatch(MongoConnectionMetadataRegex, result.LogMessage)
 			if connParams != nil {
-				handleConnectionMetadata(result, connParams)
+				handleConnectionMetadata(parser, result, connParams)
 			} else {
 				connParams := RegexpMatch(MongoEndConnectionRegex, result.LogMessage)
 				if connParams != nil {
-					handleCloseConnection(result, connParams)
+					handleCloseConnection(parser, &result)
 				}
 			}
-
-
-				conn, ok := parser.connectionMap[result.Context]
-				if !ok {
-					conn = &Connection{
-						ConnectionId: result.Context,
-						IpAddress:    connParams["ip"],
-						Port:         connParams["port"],
-					}
-					parser.connectionMap[result.Context] = conn
-				}
-				// TODO: parse and add the metadata
-			}
-
-			// TODO: try also endconnection and clean up stale entries from the map
 		}
+	}
+
+	if conn, ok := parser.connectionMap[result.Context]; ok {
+		result.ConnectionInfo = conn
 	}
 
 	if result.Severity == "I" && result.Component == "COMMAND" {
