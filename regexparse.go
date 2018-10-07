@@ -12,18 +12,12 @@ var (
 			`(?P<context>[^\s]+)\s` +
 			`(?P<message>.*)`)
 
-	_MongoLogPayloadRegex = regexp.MustCompile(
-		`command (?P<collection>[^\s]+)\scommand:\s` +
-			`(?P<command>[^\s]+)\s` +
-			`(?P<commandparams>{.*})\splanSummary:` +
-			`(?P<plansummary>.*)\sprotocol:` +
-			`(?P<protocol>[a-z]+)\s` +
-			`(?P<duration>[0-9]+)ms`)
 	MongoLogPayloadRegex = regexp.MustCompile(
 		`command (?P<collection>[^\s]+)\scommand:\s` +
 			`(?P<command>[^\s]+)\s` +
 			`(?P<commandparams>{.*})\s` +
-			`(?P<plansummary>planSummary:.*)\sprotocol:` +
+			`planSummary:\s` +
+			`(?P<plansummary>.*)\sprotocol:` +
 			`(?P<protocol>[^\s]+)\s` +
 			`(?P<duration>[0-9]+)ms`)
 )
