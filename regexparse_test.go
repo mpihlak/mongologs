@@ -52,3 +52,47 @@ func TestParseCommandMessageValues(t *testing.T) {
 		}
 	}
 }
+
+func checkExpectedValues(t *testing.T, expectedValues, actualValues map[string]string) {
+	for k, v := range expectedValues {
+		if actualValues[k] != v {
+			t.Errorf("Expected %v='%v', got '%v'\n", k, v, actualValues[k])
+		}
+	}
+}
+
+func TestParseNewConnection(t *testing.T) {
+	message := `connection accepted from 10.178.5.250:47878 #2078609 (252 connections now open)`
+	matches := RegexpMatch(MongoNewConnectionRegex, message)
+
+	expectValues := map[string]string{
+		"ip":   "10.178.5.250",
+		"port": "47878",
+		"id":   "2078609",
+	}
+	checkExpectedValues(t, expectValues, matches)
+}
+
+func TestParseEndConnection(t *testing.T) {
+	message := `end connection 127.0.0.1:42266 (250 connections now open)`
+	matches := RegexpMatch(MongoEndConnectionRegex, message)
+
+	expectValues := map[string]string{
+		"ip":   "127.0.0.1",
+		"port": "42266",
+	}
+	checkExpectedValues(t, expectValues, matches)
+}
+
+func TestParseConnectionMetadata(t *testing.T) {
+	message := `received client metadata from 10.178.5.250:47876 conn2078608: { driver: { name: "PyMongo" } }`
+	matches := RegexpMatch(MongoConnectionMetadataRegex, message)
+
+	expectValues := map[string]string{
+		"ip":       "10.178.5.250",
+		"port":     "47876",
+		"id":       "conn2078608",
+		"metadata": `{ driver: { name: "PyMongo" } }`,
+	}
+	checkExpectedValues(t, expectValues, matches)
+}
