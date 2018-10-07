@@ -14,10 +14,15 @@ func dumpContext(s string, m map[string]string) {
 	for k, v := range m {
 		fmt.Printf("%v: %v\n", k, v)
 	}
+	fmt.Println()
 }
 
 func main() {
-	parser, err := mongolog.NewPseudoJsonParser()
+	commandInfoParser, err := mongolog.NewPseudoJsonParser()
+	if err != nil {
+		panic(err)
+	}
+	planSummaryParser, err := mongolog.NewPlanSummaryParser()
 	if err != nil {
 		panic(err)
 	}
@@ -51,7 +56,7 @@ func main() {
 		contentMatch := mongolog.RegexpMatch(mongolog.MongoLogPayloadRegex, message)
 
 		if commandParams, ok := contentMatch["commandparams"]; ok {
-			_, err = mongolog.ParseMessage(parser, commandParams)
+			_, err = mongolog.ParseMessage(commandInfoParser, commandParams)
 			if err != nil {
 				fmt.Printf("commandparams parse error: %v\n", err)
 				dumpContext(commandParams, contentMatch)
@@ -62,7 +67,7 @@ func main() {
 		}
 
 		if planSummary, ok := contentMatch["plansummary"]; ok {
-			_, err = mongolog.ParseMessage(parser, planSummary)
+			_, err = mongolog.ParsePlanSummary(planSummaryParser, planSummary)
 			if err != nil {
 				fmt.Printf("plansummary parse error: %v\n", err)
 				dumpContext(planSummary, contentMatch)
@@ -71,7 +76,5 @@ func main() {
 			fmt.Printf("plansummary not found.\n")
 			dumpContext(message, contentMatch)
 		}
-
-		fmt.Println()
 	}
 }

@@ -55,26 +55,65 @@ func TestParseMessage(t *testing.T) {
 		t.Errorf("fooLimit mismatch, got %v", fooLimit)
 	}
 
-	// Look at readPreference
 	readPreference := msg.elems["$readPreference"].Nested.elems["mode"].StringValue
 	if readPreference != "secondaryPreferred" {
 		t.Errorf("$readPreference mismatch, got %v", readPreference)
 	}
 }
 
-func TestParseMoreComplexMessage(t *testing.T) {
+func TestParseIdentValues(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
 	testMessage := `{ find: "foocollection",` +
-		` filter: { $and: [ { created: { $gt: 1538270750.593 } },` +
-		` { category: { $in: [ "f", "b" ] } },` +
-		` { $or: [ { status: 10 }, { status: 60 }, { status: 61 },` +
-		` { status: 70, updated: { $lt: 1538288720.593 } } ] } ] },` +
-		` projection: {}, returnKey: false, showRecordId: false,` +
-		` lsid: { id: UUID("a2c81b1a-4d36-45db-93f0-c0beefb77838") }, $db: "FooDb" }`
+		` id: UUID("a2c81b1a-4d36-45db-93f0-c0beefb77838"),` +
+		` objectId: ObjectId("foo!") }`
 
 	_, err := ParseMessage(parser, testMessage)
 	if err != nil {
-		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
+		t.Errorf("parse error: %v: %v\n", testMessage, err)
+	}
+}
+
+func TestParseBoolValues(t *testing.T) {
+	parser, _ := NewPseudoJsonParser()
+	testMessage := `{ find: "foocollection", projection: {}, foo: 2 }`
+	_, err := ParseMessage(parser, testMessage)
+	if err != nil {
+		t.Errorf("parse error: %v: %v\n", testMessage, err)
+	}
+}
+
+func TestParseEmptyStructs(t *testing.T) {
+	parser, _ := NewPseudoJsonParser()
+	testMessage := `{ find: true, projection: false }`
+	_, err := ParseMessage(parser, testMessage)
+	if err != nil {
+		t.Errorf("parse error: %v: %v\n", testMessage, err)
+	}
+}
+
+func TestParseAdHocComplexThing(t *testing.T) {
+	parser, err := NewPlanSummaryParser()
+	if err != nil {
+		t.Errorf("error creating parser: %v\n", err)
+	}
+
+	testMessage := `IXSCAN { a: 1, b: 1 }, IXSCAN { a: 1, b: 1 }`
+	_, err = ParsePlanSummary(parser, testMessage)
+	if err != nil {
+		t.Errorf("parse error: %v: %v\n", testMessage, err)
+	}
+}
+
+func TestParseAdHocComplexThing2(t *testing.T) {
+	parser, err := NewPlanSummaryParser()
+	if err != nil {
+		t.Errorf("error creating parser: %v\n", err)
+	}
+
+	testMessage := `COLLSCAN keysExamined:0 docsExamined:45227 cursorExhausted:1 numYields:353 nreturned:0 reslen:140 locks:{ Global: { acquireCount: { r: 354 } }, Database: { acquireCount: { r: 354 } }, Collection: { acquireCount: { r: 354 } } }`
+	_, err = ParsePlanSummary(parser, testMessage)
+	if err != nil {
+		t.Errorf("parse error: %v: %v\n", testMessage, err)
 	}
 }
 
