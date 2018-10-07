@@ -11,7 +11,7 @@ type PseudoJson struct {
 	// This mess is here to support the way Mongo intermixes key-value pairs with and without
 	// the braces. Not sure that I've nailed it, but it appears to support most of it.
 	// Though maybe just use `"{" @@ { "," @@ } "}"` and deal regex the rest of it.
-	Elements []*KeyValue `(@@  { (@@ | "{" @@ "}") }) | (("{" @@ { ","  @@ } "}" ) { @@ })`
+	Elements []*KeyValue `(@@  { (@@ | "{" @@ "}") }) | (("{" { @@ { ","  @@ } } "}" ) { @@ })`
 
 	// Key the elements by KeyValue for convenient access
 	elems ElementMap
@@ -24,7 +24,7 @@ type KeyValue struct {
 }
 
 type Value struct {
-	StringValue   string      `( @String`
+	StringValue   string      `( (@String|"true"|"false")`
 	NumericValue  float64     `| @(["-"] (Int | Float))`
 	ObjectIdValue string      `| Ident "(" @String ")"`
 	ArrayValue    []*Value    `| "[" @@ { "," @@ } "]"`

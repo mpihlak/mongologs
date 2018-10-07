@@ -62,7 +62,7 @@ func TestParseMessage(t *testing.T) {
 	}
 }
 
-func testParseMoreComplexMessage(t *testing.T) {
+func TestParseMoreComplexMessage(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
 	testMessage := `{ find: "foocollection",` +
 		` filter: { $and: [ { created: { $gt: 1538270750.593 } },` +
