@@ -1,12 +1,12 @@
 package mongolog
 
 import (
+	"strings"
 	"testing"
 )
 
-func TestParseCommandMessage(t *testing.T) {
-	logLine := ""
-	logLine = `2018-10-05T14:01:04.067+0000 I COMMAND  [conn206777]` +
+func TestParseCommandMessageValues(t *testing.T) {
+	logLine := `2018-10-05T14:01:04.067+0000 I COMMAND  [conn206777]` +
 		` command FooDb.mycatpicscollection command: find { find: "mycatpicscollection",` +
 		` filter: { foo.FooObjectId: ObjectId('5a8c3a142053a407a936745e'), foo.max_time:` +
 		` { $gte: 1534769530.5 }, foo.min_time: { $lte: 1534769548.47 }, foo.category:` +
@@ -17,21 +17,38 @@ func TestParseCommandMessage(t *testing.T) {
 		` Collection: { acquireCount: { r: 394 } } } protocol:op_query 219ms`
 
 	matches := RegexpMatch(MongoLoglineRegex, logLine)
-	expectKeys := []string{"timestamp", "severity", "component", "context", "message"}
+	expectValues := map[string]string{
+		"timestamp": "2018-10-05T14:01:04.067+0000",
+		"severity":  "I",
+		"component": "COMMAND",
+		"context":   "[conn206777]",
+		"message":   "command FooDb",
+	}
 
-	for _, k := range expectKeys {
-		if _, ok := matches[k]; !ok {
-			t.Errorf("Logline: expected key not found: %v\n", k)
+	for k, v := range expectValues {
+		if k == "message" {
+			if !strings.HasPrefix(matches[k], v) {
+				t.Errorf("message data mismatch")
+			}
+		} else if v != matches[k] {
+			t.Errorf("Expected %v='%v', got '%v'\n", k, v, matches[k])
 		}
 	}
 
 	messageText := matches["message"]
 	matches = RegexpMatch(MongoLogPayloadRegex, messageText)
-	expectKeys = []string{"collection", "command", "commandparams", "plansummary", "protocol", "duration"}
+	expectValues = map[string]string{
+		"collection":    "FooDb.mycatpicscollection",
+		"command":       "find",
+		"commandparams": "{ find: \"mycatpicscollection\"",
+		"plansummary":   "IXSCAN { foo.FooObjectId",
+		"protocol":      "op_query",
+		"duration":      "219",
+	}
 
-	for _, k := range expectKeys {
-		if _, ok := matches[k]; !ok {
-			t.Errorf("Message: expected key not found: %v\n", k)
+	for k, v := range expectValues {
+		if !strings.HasPrefix(matches[k], v) {
+			t.Errorf("Expected %v='%v', got '%v'\n", k, v, matches[k])
 		}
 	}
 }
