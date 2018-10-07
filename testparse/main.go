@@ -9,6 +9,13 @@ import (
 	"github.com/mpihlak/mongolog"
 )
 
+func dumpContext(s string, m map[string]string) {
+	fmt.Printf("context: %v\n", s)
+	for k, v := range m {
+		fmt.Printf("%v: %v\n", k, v)
+	}
+}
+
 func main() {
 	parser, err := mongolog.NewPseudoJsonParser()
 	if err != nil {
@@ -31,40 +38,38 @@ func main() {
 	for scanner.Scan() {
 		logLine := scanner.Text()
 
-		fmt.Printf("logLine: %v\n", logLine)
+		logMatch := mongolog.RegexpMatch(mongolog.MongoLoglineRegex, logLine)
+		message := logMatch["message"]
+		component := logMatch["component"]
+		severity := logMatch["severity"]
 
-		match := mongolog.RegexpMatch(mongolog.MongoLoglineRegex, logLine)
-		for k, v := range match {
-			fmt.Printf("%v: %v\n", k, v)
-		}
-
-		message, ok := match["message"]
-		if !ok {
-			fmt.Printf("message body not found.\n\n")
+		if severity != "I" || component != "COMMAND" {
+			// Only look at "normal" command log
 			continue
 		}
 
-		match = mongolog.RegexpMatch(mongolog.MongoLogPayloadRegex, message)
-		for k, v := range match {
-			fmt.Printf("%v: %v\n", k, v)
-		}
+		contentMatch := mongolog.RegexpMatch(mongolog.MongoLogPayloadRegex, message)
 
-		if commandParams, ok := match["commandparams"]; ok {
+		if commandParams, ok := contentMatch["commandparams"]; ok {
 			_, err = mongolog.ParseMessage(parser, commandParams)
 			if err != nil {
 				fmt.Printf("commandparams parse error: %v\n", err)
+				dumpContext(commandParams, contentMatch)
 			}
 		} else {
 			fmt.Printf("command parameters not found.\n")
+			dumpContext(message, contentMatch)
 		}
 
-		if planSummary, ok := match["plansummary"]; ok {
+		if planSummary, ok := contentMatch["plansummary"]; ok {
 			_, err = mongolog.ParseMessage(parser, planSummary)
 			if err != nil {
 				fmt.Printf("plansummary parse error: %v\n", err)
+				dumpContext(planSummary, contentMatch)
 			}
 		} else {
 			fmt.Printf("plansummary not found.\n")
+			dumpContext(message, contentMatch)
 		}
 
 		fmt.Println()
