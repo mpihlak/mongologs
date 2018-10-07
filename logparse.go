@@ -8,7 +8,9 @@ import (
 type ElementMap map[string]*Value
 
 type PseudoJson struct {
-	// Elements []*KeyValue `"{" @@ { "," @@ } "}"`
+	// This mess is here to support the way Mongo intermixes key-value pairs with and without
+	// the braces. Not sure that I've nailed it, but it appears to support most of it.
+	// Though maybe just use `"{" @@ { "," @@ } "}"` and deal regex the rest of it.
 	Elements []*KeyValue `(@@  { (@@ | "{" @@ "}") }) | (("{" @@ { ","  @@ } "}" ) { @@ })`
 
 	// Key the elements by KeyValue for convenient access
@@ -24,7 +26,7 @@ type KeyValue struct {
 type Value struct {
 	StringValue   string      `( @String`
 	NumericValue  float64     `| @(["-"] (Int | Float))`
-	ObjectIdValue string      `| "ObjectId" "(" @String ")"`
+	ObjectIdValue string      `| Ident "(" @String ")"`
 	ArrayValue    []*Value    `| "[" @@ { "," @@ } "]"`
 	Nested        *PseudoJson `| @@ )`
 }
