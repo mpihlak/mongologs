@@ -24,7 +24,7 @@ type KeyValue struct {
 }
 
 type Value struct {
-	StringValue   string      `( (@String|"true"|"false")`
+	StringValue   string      `( (@String|"true"|"false"|"COLLSCAN"|"IDXSCAN")`
 	NumericValue  float64     `| @(["-"] (Int | Float))`
 	ObjectIdValue string      `| Ident "(" @String ")"`
 	ArrayValue    []*Value    `| "[" @@ { "," @@ } "]"`
