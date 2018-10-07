@@ -3,7 +3,6 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
 
 	"github.com/mpihlak/mongolog"
@@ -18,70 +17,45 @@ func dumpContext(s string, m map[string]string) {
 }
 
 func main() {
-	commandInfoParser, err := mongolog.NewPseudoJsonParser()
-	if err != nil {
-		panic(err)
-	}
-	planSummaryParser, err := mongolog.NewPlanSummaryParser()
-	if err != nil {
-		panic(err)
-	}
-
-	var file io.Reader
+	file := os.Stdin
 
 	if len(os.Args) == 2 {
+		var err error
 		file, err = os.Open(os.Args[1])
 		if err != nil {
 			panic(err)
 		}
-	} else {
-		file = os.Stdin
+		defer file.Close()
 	}
 
 	scanner := bufio.NewScanner(file)
+	parser, err := mongolog.NewLogParser()
+	if err != nil {
+		panic(err)
+	}
 
-	lines_matched := 0
 	total_lines := 0
+	parse_errors := 0
 	for scanner.Scan() {
 		logLine := scanner.Text()
 		total_lines++
 
-		logMatch := mongolog.RegexpMatch(mongolog.MongoLoglineRegex, logLine)
-		message := logMatch["message"]
-		component := logMatch["component"]
-		severity := logMatch["severity"]
-
-		if severity != "I" || component != "COMMAND" {
-			// Only look at "normal" command log
-			continue
-		}
-
-		lines_matched++
-
-		contentMatch := mongolog.RegexpMatch(mongolog.MongoLogPayloadRegex, message)
-
-		if commandParams, ok := contentMatch["commandparams"]; ok {
-			_, err = mongolog.ParseMessage(commandInfoParser, commandParams)
-			if err != nil {
-				fmt.Printf("commandparams parse error: %v\n", err)
-				dumpContext(commandParams, contentMatch)
-			}
+		logEntry, err := mongolog.ParseLogEntry(parser, logLine)
+		if err != nil {
+			fmt.Printf("error parsing: %v\n", logLine)
+			fmt.Printf("%s\n", err)
+			parse_errors++
 		} else {
-			fmt.Printf("command parameters not found.\n")
-			dumpContext(message, contentMatch)
-		}
-
-		if planSummary, ok := contentMatch["plansummary"]; ok {
-			_, err = mongolog.ParsePlanSummary(planSummaryParser, planSummary)
-			if err != nil {
-				fmt.Printf("plansummary parse error: %v\n", err)
-				dumpContext(planSummary, contentMatch)
+			chop := len(logEntry.LogMessage)
+			if chop > 80 {
+				chop = 80
 			}
-		} else {
-			fmt.Printf("plansummary not found.\n")
-			dumpContext(message, contentMatch)
+
+			fmt.Printf("time: %v\nseverity: %v\ncomponent: %v\ncontext: %v\nlog: %v\n",
+				logEntry.Timestamp, logEntry.Severity, logEntry.Component,
+				logEntry.Context, logEntry.LogMessage[:chop])
 		}
 	}
 
-	fmt.Printf("Done, lines matched %d, total lines %d\n", lines_matched, total_lines)
+	fmt.Printf("Done, total lines %d, parse errors %d\n", total_lines, parse_errors)
 }

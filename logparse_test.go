@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestParseMessage(t *testing.T) {
+func TestParseCommandParameters(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
 	testMessage := `{
 		count.x: "mycatpicscollection",
@@ -21,7 +21,7 @@ func TestParseMessage(t *testing.T) {
 		$db: "FooDb"
 	}`
 
-	msg, err := ParseMessage(parser, testMessage)
+	msg, err := ParseCommandParameters(parser, testMessage)
 	if err != nil {
 		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
 	}
@@ -67,7 +67,7 @@ func TestParseIdentValues(t *testing.T) {
 		` id: UUID("a2c81b1a-4d36-45db-93f0-c0beefb77838"),` +
 		` objectId: ObjectId("foo!") }`
 
-	_, err := ParseMessage(parser, testMessage)
+	_, err := ParseCommandParameters(parser, testMessage)
 	if err != nil {
 		t.Errorf("parse error: %v: %v\n", testMessage, err)
 	}
@@ -76,7 +76,7 @@ func TestParseIdentValues(t *testing.T) {
 func TestParseBoolValues(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
 	testMessage := `{ find: "foocollection", projection: {}, foo: 2 }`
-	_, err := ParseMessage(parser, testMessage)
+	_, err := ParseCommandParameters(parser, testMessage)
 	if err != nil {
 		t.Errorf("parse error: %v: %v\n", testMessage, err)
 	}
@@ -85,7 +85,7 @@ func TestParseBoolValues(t *testing.T) {
 func TestParseEmptyStructs(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
 	testMessage := `{ find: true, projection: false }`
-	_, err := ParseMessage(parser, testMessage)
+	_, err := ParseCommandParameters(parser, testMessage)
 	if err != nil {
 		t.Errorf("parse error: %v: %v\n", testMessage, err)
 	}
@@ -117,11 +117,11 @@ func TestParseAdHocComplexThing2(t *testing.T) {
 	}
 }
 
-func TestParseMessageNegativeNumbers(t *testing.T) {
+func TestParseCommandParametersNegativeNumbers(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
 	testMessage := `{ a: -1, b: 2 }`
 
-	msg, err := ParseMessage(parser, testMessage)
+	msg, err := ParseCommandParameters(parser, testMessage)
 	if err != nil {
 		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
 	}
@@ -137,11 +137,11 @@ func TestParseMessageNegativeNumbers(t *testing.T) {
 	}
 }
 
-func TestParseMessageArrayValues(t *testing.T) {
+func TestParseCommandParametersArrayValues(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
 	testMessage := `{ a: [ -42, 55, 9 ] }`
 
-	msg, err := ParseMessage(parser, testMessage)
+	msg, err := ParseCommandParameters(parser, testMessage)
 	if err != nil {
 		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
 	}
@@ -155,11 +155,11 @@ func TestParseMessageArrayValues(t *testing.T) {
 	}
 }
 
-func TestParseMessageMixedMode(t *testing.T) {
+func TestParseCommandParametersMixedMode(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
 	testMessage := `x: 1  y: 2 { z: 3 }`
 
-	msg, err := ParseMessage(parser, testMessage)
+	msg, err := ParseCommandParameters(parser, testMessage)
 	if err != nil {
 		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
 	}
@@ -175,11 +175,11 @@ func TestParseMessageMixedMode(t *testing.T) {
 	}
 }
 
-func TestParseMessageMixedModeEdges(t *testing.T) {
+func TestParseCommandParametersMixedModeEdges(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
 	testMessage := `{ x: 1} y: 2 `
 
-	_, err := ParseMessage(parser, testMessage)
+	_, err := ParseCommandParameters(parser, testMessage)
 	if err != nil {
 		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
 	}
@@ -213,42 +213,42 @@ func TestForParseErrors(t *testing.T) {
 	}
 
 	for _, v := range testMessages {
-		if _, err := ParseMessage(parser, v); err != nil {
+		if _, err := ParseCommandParameters(parser, v); err != nil {
 			t.Errorf("unable to parse message: %v: %v\n", v, err)
 		}
 	}
 }
 
-func benchmarkParseMessage(testMessage string, b *testing.B) {
+func benchmarkParseCommandParameters(testMessage string, b *testing.B) {
 	parser, err := NewPseudoJsonParser()
 	if err != nil {
 		b.Errorf("Error initializing parser: %v\n", err)
 	}
 
 	for i := 0; i < b.N; i++ {
-		if _, err := ParseMessage(parser, testMessage); err != nil {
+		if _, err := ParseCommandParameters(parser, testMessage); err != nil {
 			b.Errorf("Cannot parse: %v\n", testMessage)
 		}
 	}
 }
 
-func BenchmarkParseMessageSmall(b *testing.B) {
-	benchmarkParseMessage(`{ a: 1 }`, b)
+func BenchmarkParseCommandParametersSmall(b *testing.B) {
+	benchmarkParseCommandParameters(`{ a: 1 }`, b)
 }
 
-func BenchmarkParseMessageMedium(b *testing.B) {
-	benchmarkParseMessage(`{ driver: { name: "PyMongo", version: "3.4.0" }, os: { type: "Linux" } }`, b)
+func BenchmarkParseCommandParametersMedium(b *testing.B) {
+	benchmarkParseCommandParameters(`{ driver: { name: "PyMongo", version: "3.4.0" }, os: { type: "Linux" } }`, b)
 }
 
-func BenchmarkParseMessageLarge(b *testing.B) {
-	benchmarkParseMessage(`{ 
+func BenchmarkParseCommandParametersLarge(b *testing.B) {
+	benchmarkParseCommandParameters(`{ 
 	  count: "mycatpicscollection", query: { MyObjectId: ObjectId('5a2fc7bd9b45c7117bee26c5'),
 	  baz.max_time: { $gte: 1523022862.698 }, baz.min_time: { $lte: 1523022882.698 },
 	  baz.category: "catinabag" }, $readPreference: { mode: "secondaryPreferred" }, $db: "FooDb"}`, b)
 }
 
 // Compare against a regex based parser
-func TestParseMessageRegex(t *testing.T) {
+func TestParseCommandParametersRegex(t *testing.T) {
 	testMessage := `{ driver: { name: "PyMongo", version: "3.4.0" }, os: { type: "Linux" } }`
 	re := regexp.MustCompile(`{ driver: { name: "(?P<driverName>.*)", version: "(?P<driverVersion>.*)" }, os: { type: "(?P<osType>.*)" } }`)
 	match := re.FindStringSubmatch(testMessage)
@@ -273,7 +273,7 @@ func TestParseMessageRegex(t *testing.T) {
 }
 
 // Compare against a regex based parser
-func BenchmarkParseMessageRegexMedium(b *testing.B) {
+func BenchmarkParseCommandParametersRegexMedium(b *testing.B) {
 	testMessage := `{ driver: { name: "PyMongo", version: "3.4.0" }, os: { type: "Linux" } }`
 	re := regexp.MustCompile(`{ driver: { name: "(?P<driverName>.*)", version: "(?P<driverVersion>.*)" }, os: { type: "(?P<osType>.*)" } }`)
 

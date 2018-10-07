@@ -25,6 +25,10 @@ var (
 // Match a regexp against a string. Return the subgroups in a dictionary
 func RegexpMatch(re *regexp.Regexp, matchText string) (results map[string]string) {
 	match := re.FindStringSubmatch(matchText)
+	if match == nil {
+		return
+	}
+
 	results = make(map[string]string)
 	for i, name := range re.SubexpNames() {
 		if i != 0 && i < len(match) {

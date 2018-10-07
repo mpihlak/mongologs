@@ -9,9 +9,9 @@ type ElementMap map[string]*Value
 
 type PseudoJson struct {
 	// This mess is here to support the way Mongo intermixes key-value pairs with and without
-	// the braces. Not sure that I've nailed it, but it appears to support most of it.
-	// Though maybe just use `"{" @@ { "," @@ } "}"` and deal regex the rest of it.
-	// TODO: Actually moving the messy parts to another parser so clean this up when done
+	// the braces, sometimes separated by commas and somtimes not. Not sure that I've nailed it, but
+	// it appears to support most of it.  Though maybe just use `"{" @@ { "," @@ } "}"` and regex
+	// the rest of it.
 	Elements []*KeyValue `(@@  { (@@ | "{" @@ { "," @@ } "}") }) | (("{" { @@ { ","  @@ } } "}" ) { @@ })`
 
 	// Key the elements by KeyValue for convenient access
@@ -34,14 +34,14 @@ type KeyValue struct {
 }
 
 type Value struct {
-	StringValue   string      `( (@String|"true"|"false"|"COLLSCAN"|"IXSCAN")`
+	StringValue   string      `( (@String|"true"|"false")`
 	NumericValue  float64     `| @(["-"] (Int | Float))`
 	ObjectIdValue string      `| Ident "(" @String ")"`
 	ArrayValue    []*Value    `| "[" { @@ { "," @@ } } "]"`
 	Nested        *PseudoJson `| @@ )`
 }
 
-type PseudoJsonParser struct {
+type MongoLogParser struct {
 	p *participle.Parser
 }
 
@@ -55,30 +55,33 @@ func mapElementKeys(mongoJson *PseudoJson) {
 	}
 }
 
-func NewPseudoJsonParser() (parser PseudoJsonParser, err error) {
-	parser = PseudoJsonParser{}
+func NewPseudoJsonParser() (parser MongoLogParser, err error) {
+	parser = MongoLogParser{}
 	parser.p, err = participle.Build(&PseudoJson{})
 	return
 }
 
-func NewPlanSummaryParser() (parser PseudoJsonParser, err error) {
-	parser = PseudoJsonParser{}
+func NewCommandParametersParser() (parser MongoLogParser, err error) {
+	return NewPseudoJsonParser()
+}
+
+func NewPlanSummaryParser() (parser MongoLogParser, err error) {
+	parser = MongoLogParser{}
 	parser.p, err = participle.Build(&PlanSummary{})
 	return
 }
 
-func ParseMessage(parser PseudoJsonParser, message string) (*PseudoJson, error) {
-	mongoJson := &PseudoJson{}
-	if err := parser.p.ParseString(message, mongoJson); err != nil {
-		return mongoJson, err
+func ParseCommandParameters(parser MongoLogParser, message string) (result *PseudoJson, err error) {
+	result = &PseudoJson{}
+	err = parser.p.ParseString(message, result)
+	if err == nil {
+		mapElementKeys(result)
 	}
 
-	mapElementKeys(mongoJson)
-
-	return mongoJson, nil
+	return
 }
 
-func ParsePlanSummary(parser PseudoJsonParser, message string) (result *PlanSummary, err error) {
+func ParsePlanSummary(parser MongoLogParser, message string) (result *PlanSummary, err error) {
 	result = &PlanSummary{}
 	err = parser.p.ParseString(message, result)
 	return
