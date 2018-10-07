@@ -71,7 +71,7 @@ func NewPlanSummaryParser() (parser MongoLogParser, err error) {
 	return
 }
 
-func ParseCommandParameters(parser MongoLogParser, message string) (result *PseudoJson, err error) {
+func ParsePseudoJson(parser MongoLogParser, message string) (result *PseudoJson, err error) {
 	result = &PseudoJson{}
 	err = parser.p.ParseString(message, result)
 	if err == nil {
@@ -79,6 +79,10 @@ func ParseCommandParameters(parser MongoLogParser, message string) (result *Pseu
 	}
 
 	return
+}
+
+func ParseCommandParameters(parser MongoLogParser, message string) (result *PseudoJson, err error) {
+	return ParsePseudoJson(parser, message)
 }
 
 func ParsePlanSummary(parser MongoLogParser, message string) (result *PlanSummary, err error) {
