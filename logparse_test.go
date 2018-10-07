@@ -62,6 +62,22 @@ func TestParseMessage(t *testing.T) {
 	}
 }
 
+func testParseMoreComplexMessage(t *testing.T) {
+	parser, _ := NewPseudoJsonParser()
+	testMessage := `{ find: "foocollection",` +
+		` filter: { $and: [ { created: { $gt: 1538270750.593 } },` +
+		` { category: { $in: [ "f", "b" ] } },` +
+		` { $or: [ { status: 10 }, { status: 60 }, { status: 61 },` +
+		` { status: 70, updated: { $lt: 1538288720.593 } } ] } ] },` +
+		` projection: {}, returnKey: false, showRecordId: false,` +
+		` lsid: { id: UUID("a2c81b1a-4d36-45db-93f0-c0beefb77838") }, $db: "FooDb" }`
+
+	_, err := ParseMessage(parser, testMessage)
+	if err != nil {
+		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
+	}
+}
+
 func TestParseMessageNegativeNumbers(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
 	testMessage := `{ a: -1, b: 2 }`
@@ -110,7 +126,7 @@ func TestParseMessageMixedMode(t *testing.T) {
 	}
 
 	var expectedValues = map[string]float64{
-		"x": 1, "y":2, "z": 3,
+		"x": 1, "y": 2, "z": 3,
 	}
 	for k, v := range expectedValues {
 		actualValue := msg.elems[k].NumericValue
@@ -129,7 +145,6 @@ func TestParseMessageMixedModeEdges(t *testing.T) {
 		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
 	}
 }
-
 
 func TestForParseErrors(t *testing.T) {
 	testMessages := []string{
