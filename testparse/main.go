@@ -51,7 +51,7 @@ func main() {
 				chop = 80
 			}
 
-			fmt.Printf("time: %v\nseverity: %v\ncomponent: %v\ncontext: %v\nlog: %v\n",
+			fmt.Printf("time: %v\nseverity: %v\ncomponent: %v\ncontext: %v\nlog: %v\n\n",
 				logEntry.Timestamp, logEntry.Severity, logEntry.Component,
 				logEntry.Context, logEntry.LogMessage[:chop])
 		}
