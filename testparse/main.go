@@ -40,8 +40,11 @@ func main() {
 
 	scanner := bufio.NewScanner(file)
 
+	lines_matched := 0
+	total_lines := 0
 	for scanner.Scan() {
 		logLine := scanner.Text()
+		total_lines++
 
 		logMatch := mongolog.RegexpMatch(mongolog.MongoLoglineRegex, logLine)
 		message := logMatch["message"]
@@ -52,6 +55,8 @@ func main() {
 			// Only look at "normal" command log
 			continue
 		}
+
+		lines_matched++
 
 		contentMatch := mongolog.RegexpMatch(mongolog.MongoLogPayloadRegex, message)
 
@@ -77,4 +82,6 @@ func main() {
 			dumpContext(message, contentMatch)
 		}
 	}
+
+	fmt.Printf("Done, lines matched %d, total lines %d\n", lines_matched, total_lines)
 }
