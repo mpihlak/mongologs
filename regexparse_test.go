@@ -36,7 +36,7 @@ func TestParseCommandMessageValues(t *testing.T) {
 	}
 
 	messageText := matches["message"]
-	matches = RegexpMatch(MongoLogPayloadRegex, messageText)
+	matches = RegexpMatch(MongoLogCommandPayloadRegex, messageText)
 	expectValues = map[string]string{
 		"collection":    "FooDb.mycatpicscollection",
 		"command":       "find",
@@ -95,4 +95,14 @@ func TestParseConnectionMetadata(t *testing.T) {
 		"metadata": `{ driver: { name: "PyMongo" } }`,
 	}
 	checkExpectedValues(t, expectValues, matches)
+}
+
+func TestReplaceBinData(t *testing.T) {
+	message := `{ a: BinData(0, E3B0C44298FC1), b: BinData(0, E3B0C44298FC1) }`
+	expectMessage := `{ a: BinData(0, "E3B0C44298FC1"), b: BinData(0, "E3B0C44298FC1") }`
+
+	s := ReplaceBinData(message)
+	if s != expectMessage {
+		t.Errorf("unexpected result:\nexpect: %v\nvalue : %v\n", expectMessage, s)
+	}
 }

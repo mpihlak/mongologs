@@ -12,12 +12,20 @@ var (
 			`(?P<context>[^\s]+)\s` +
 			`(?P<message>.*)`)
 
-	MongoLogPayloadRegex = regexp.MustCompile(
+	MongoLogCommandPayloadRegex = regexp.MustCompile(
 		`command (?P<collection>[^\s]+)\scommand:\s` +
 			`(?P<command>[^\s]+)\s` +
 			`(?P<commandparams>{.*})\s` +
 			`planSummary:\s` +
 			`(?P<plansummary>.*)\sprotocol:` +
+			`(?P<protocol>[^\s]+)\s` +
+			`(?P<duration>[0-9]+)ms`)
+
+	MongoLogInsertPayloadRegex = regexp.MustCompile(
+		`command (?P<collection>[^\s]+)\scommand:\s` +
+			`(?P<command>[^\s]+)\s` +
+			`(?P<commandparams>{.*})\s` +
+			`(?P<insertsummary>ninserted:.*)\sprotocol:` +
 			`(?P<protocol>[^\s]+)\s` +
 			`(?P<duration>[0-9]+)ms`)
 
@@ -29,6 +37,9 @@ var (
 		`end connection (?P<ip>[\d.]+):(?P<port>\d+)`)
 	MongoConnectionMetadataRegex = regexp.MustCompile(
 		`received client metadata from (?P<ip>[\d.]+):(?P<port>\d+) (?P<id>[a-z\d]+): (?P<metadata>.*)`)
+
+	MongoBinDataRegex = regexp.MustCompile(
+		`(BinData\(0,) ([A-F0-9]+)\)`)
 )
 
 // Match a regexp against a string. Return the subgroups in a dictionary
@@ -45,4 +56,9 @@ func RegexpMatch(re *regexp.Regexp, matchText string) (results map[string]string
 		}
 	}
 	return
+}
+
+// This is a hack to make the BinData parseable. Really ought to handle this properly in the parser.
+func ReplaceBinData(message string) string {
+	return MongoBinDataRegex.ReplaceAllString(message, "$1 \"$2\")")
 }

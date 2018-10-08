@@ -7,7 +7,7 @@ import (
 
 func TestParseCommandParameters(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
-	testMessage := `{
+	testMessage := ReplaceBinData(`{
 		count.x: "mycatpicscollection",
 		query: {
 			MyObjectId: ObjectId('5a2fc7bd9b45c7117bee26c5'),
@@ -16,7 +16,7 @@ func TestParseCommandParameters(t *testing.T) {
 			category: "bagfoo",
 			d: new Date(1234),
 			f: null,
-			xx: BinData(0, FAFA),
+			x: BinData(0, E232321232),
 			clusterTime: Timestamp(1538978461, 14),
 			aa: "foo"
 		},
@@ -24,7 +24,7 @@ func TestParseCommandParameters(t *testing.T) {
 			mode: "secondaryPreferred"
 		},
 		$db: "FooDb"
-	}`
+	}`)
 
 	msg, err := ParseCommandParameters(parser, testMessage)
 	if err != nil {
@@ -130,7 +130,7 @@ func TestParseAdHocComplexThing2(t *testing.T) {
 
 func TestParseCommandParametersNegativeNumbers(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
-	testMessage := `{ a: -1, b: 2 }`
+	testMessage := `{ a: -1, b: 10 }`
 
 	msg, err := ParseCommandParameters(parser, testMessage)
 	if err != nil {
@@ -143,8 +143,8 @@ func TestParseCommandParametersNegativeNumbers(t *testing.T) {
 	}
 
 	b := msg.elems["b"].NumericValue
-	if b != 2 {
-		t.Errorf("Expecting 2, got %v\n", b)
+	if b != 10 {
+		t.Errorf("Expecting 10, got %v\n", b)
 	}
 }
 

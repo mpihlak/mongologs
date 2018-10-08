@@ -24,7 +24,7 @@ type Connection struct {
 type LogParser struct {
 	commandParametersParser MongoLogParser
 	planSummaryParser       MongoLogParser
-	connectionMetaParser	MongoLogParser
+	connectionMetaParser    MongoLogParser
 
 	connectionMap map[string]*Connection
 }
@@ -71,7 +71,7 @@ func handleConnectionMetadata(parser LogParser, entry MongoLogEntry, connParams 
 		// Parse the metadata payload and add to connection
 		connMeta, err := ParsePseudoJson(parser.connectionMetaParser, connParams["metadata"])
 		if err == nil {
-			_  = conn
+			_ = conn
 			_ = connMeta
 		}
 	}
@@ -114,7 +114,7 @@ func ParseLogEntry(parser LogParser, logLine string) (result MongoLogEntry, err 
 
 	if result.Severity == "I" && result.Component == "COMMAND" {
 		// Parse the command parameters and execution plan
-		commandBody := RegexpMatch(MongoLogPayloadRegex, result.LogMessage)
+		commandBody := RegexpMatch(MongoLogCommandPayloadRegex, ReplaceBinData(result.LogMessage))
 		if commandBody == nil {
 			return result, fmt.Errorf("COMMAND payload does not match expected.")
 		}
