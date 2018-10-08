@@ -13,7 +13,12 @@ func TestParseCommandParameters(t *testing.T) {
 			MyObjectId: ObjectId('5a2fc7bd9b45c7117bee26c5'),
 			baz.max_time: { $gte: 1523022862.698 },
 			fooLimit: 42,
-			category: "bagfoo"
+			category: "bagfoo",
+			d: new Date(1234),
+			f: null,
+			xx: BinData(0, FAFA),
+			clusterTime: Timestamp(1538978461, 14),
+			aa: "foo"
 		},
 		$readPreference: {
 			mode: "secondaryPreferred"
@@ -24,6 +29,7 @@ func TestParseCommandParameters(t *testing.T) {
 	msg, err := ParseCommandParameters(parser, testMessage)
 	if err != nil {
 		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
+		return
 	}
 
 	var expectedStringValues = map[string]string{
@@ -39,10 +45,15 @@ func TestParseCommandParameters(t *testing.T) {
 
 	// Look at "query" fields
 	q := msg.elems["query"].Nested
-	botstring := q.elems["MyObjectId"].ObjectIdValue
-	if botstring != "5a2fc7bd9b45c7117bee26c5" {
-		t.Errorf("query MyObjectId mismatch, got %v", botstring)
+
+	botId := q.elems["MyObjectId"].FuncValue
+	if botId.FuncName != "ObjectId" {
+		t.Errorf("Expected MyObjectId to be 'ObjectId'")
 	}
+	if botId.FuncArgs[0].StringValue != "5a2fc7bd9b45c7117bee26c5" {
+		t.Errorf("query MyObjectId mismatch, got %v", botId.FuncArgs[0].StringValue)
+	}
+
 	if q.elems["category"].StringValue != "bagfoo" {
 		t.Errorf("query category mismatch, got %v", q.elems["category"].StringValue)
 	}

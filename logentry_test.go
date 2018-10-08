@@ -35,7 +35,11 @@ func TestParseLogEntry(t *testing.T) {
 		}
 	}
 
-	parser, _ := NewLogParser()
+	parser, err := NewLogParser()
+	if err != nil {
+		t.Errorf("Failed to initialize parser: %v\n", err)
+		return
+	}
 
 	m, err := ParseLogEntry(parser, newConnectionMessage)
 	validateConnection(m, err)
@@ -49,4 +53,3 @@ func TestParseLogEntry(t *testing.T) {
 	m, err = ParseLogEntry(parser, endConnectionMessage)
 	validateConnection(m, err)
 }
-

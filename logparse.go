@@ -34,11 +34,17 @@ type KeyValue struct {
 }
 
 type Value struct {
-	StringValue   string      `( (@String|"true"|"false")`
-	NumericValue  float64     `| @(["-"] (Int | Float))`
-	ObjectIdValue string      `| Ident "(" @String ")"`
-	ArrayValue    []*Value    `| "[" { @@ { "," @@ } } "]"`
-	Nested        *PseudoJson `| @@ )`
+	StringValue  string         `( (@String|"true"|"false"|"null")`
+	NumericValue float64        `| @(["-"] (Int | Float))`
+	FuncValue    *FunctionValue `| @@`
+	ArrayValue   []*Value       `| "[" { @@ { "," @@ } } "]"`
+	Nested       *PseudoJson    `| @@ )`
+}
+
+type FunctionValue struct {
+	//FuncName string   `["new"] @Ident`
+	FuncName string   `["new"] @("ObjectId"|"UUID"|"BinData"|"Date"|"Timestamp")`
+	FuncArgs []*Value `"(" { @@ ({ "," @@ }) } ")"`
 }
 
 type MongoLogParser struct {
