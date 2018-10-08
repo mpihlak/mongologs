@@ -34,16 +34,16 @@ type KeyValue struct {
 }
 
 type Value struct {
-	StringValue  string         `( (@String|"true"|"false"|"null")`
-	NumericValue float64        `| @(["-"] (Int | Float))`
+	StringValue  string         `( (@String|"null")`
+	BoolValue    bool           `| (@"true" | "false")`
+	NumericValue float64        `| @(["-"] (Float|Int))`
 	FuncValue    *FunctionValue `| @@`
 	ArrayValue   []*Value       `| "[" { @@ { "," @@ } } "]"`
 	Nested       *PseudoJson    `| @@ )`
 }
 
 type FunctionValue struct {
-	//FuncName string   `["new"] @Ident`
-	FuncName string   `["new"] @("ObjectId"|"UUID"|"BinData"|"Date"|"Timestamp")`
+	FuncName string   `["new"] @Ident`
 	FuncArgs []*Value `"(" { @@ ({ "," @@ }) } ")"`
 }
 
