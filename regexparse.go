@@ -24,8 +24,7 @@ var (
 	MongoLogInsertPayloadRegex = regexp.MustCompile(
 		`command (?P<collection>[^\s]+)\scommand:\s` +
 			`(?P<command>[^\s]+)\s` +
-			`(?P<commandparams>{.*})\s` +
-			`(?P<insertsummary>ninserted:.*)\sprotocol:` +
+			`(?P<insertparams>{.*})\sprotocol:` +
 			`(?P<protocol>[^\s]+)\s` +
 			`(?P<duration>[0-9]+)ms`)
 

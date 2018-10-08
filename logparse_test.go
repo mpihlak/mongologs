@@ -84,7 +84,7 @@ func TestParseIdentValues(t *testing.T) {
 	}
 }
 
-func TestParseBoolValues(t *testing.T) {
+func TestParseEmptyStructs(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
 	testMessage := `{ find: "foocollection", projection: {}, foo: 2 }`
 	_, err := ParseCommandParameters(parser, testMessage)
@@ -93,7 +93,7 @@ func TestParseBoolValues(t *testing.T) {
 	}
 }
 
-func TestParseEmptyStructs(t *testing.T) {
+func TestParseBoolValues(t *testing.T) {
 	parser, _ := NewPseudoJsonParser()
 	testMessage := `{ find: true, projection: false }`
 	_, err := ParseCommandParameters(parser, testMessage)
@@ -163,6 +163,16 @@ func TestParseCommandParametersArrayValues(t *testing.T) {
 		if a != v {
 			t.Errorf("Expecting %v, got %v\n", v, a)
 		}
+	}
+}
+
+func TestParseInsertPayload(t *testing.T) {
+	parser, _ := NewPseudoJsonParser()
+	testMessage := `{ insert: "mycatpicscollection", ordered: true, $clusterTime: { clusterTime: Timestamp(1538979514, 76), signature: { hash: BinData(0, "A000000000000000000000000000000000000000"), keyId: 0 } }, lsid: { id: UUID("c3cc9fef-182a-4917-9b5a-f715d0639ac2") }, $db: "FooDb" } ninserted:1 keysInserted:3 numYields:0 reslen:229 locks:{ Global: { acquireCount: { r: 2, w: 2 } }, Database: { acquireCount: { w: 2 }, acquireWaitCount: { w: 1 }, timeAcquiringMicros: { w: 12259 } }, Collection: { acquireCount: { w: 1 } }, oplog: { acquireCount: { w: 1 } } }`
+
+	_, err := ParseCommandParameters(parser, testMessage)
+	if err != nil {
+		t.Errorf("unable to parse message: %v: %v\n", testMessage, err)
 	}
 }
 

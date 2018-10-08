@@ -97,6 +97,29 @@ func TestParseConnectionMetadata(t *testing.T) {
 	checkExpectedValues(t, expectValues, matches)
 }
 
+func TestParseInsertCommand(t *testing.T) {
+	message := `command FooDb.mycatpicscollection command: insert` +
+		` { insert: "mycatpicscollection", ordered: true, $clusterTime:` +
+		` { clusterTime: Timestamp(1538979514, 76), signature: {` +
+		` hash: BinData(0, 0000000000000000000000000000000000000000), keyId: 0 } },` +
+		` lsid: { id: UUID("c3cc9fef-182a-4917-9b5a-f715d0639ac2") }, $db: "FooDb" }` +
+		` ninserted:1 keysInserted:3 numYields:0 reslen:229 locks:{ Global: ` +
+		`{ acquireCount: { r: 2, w: 2 } }, Database: { acquireCount: { w: 2 },` +
+		` acquireWaitCount: { w: 1 }, timeAcquiringMicros: { w: 12259 } },` +
+		` Collection: { acquireCount: { w: 1 } }, oplog: { acquireCount: { w: 1 } } }` +
+		` protocol:op_query 12ms`
+
+	matches := RegexpMatch(MongoLogInsertPayloadRegex, message)
+
+	expectValues := map[string]string{
+		"command":    "insert",
+		"collection": "FooDb.mycatpicscollection",
+		"protocol":   "op_query",
+		"duration":   "12",
+	}
+	checkExpectedValues(t, expectValues, matches)
+}
+
 func TestReplaceBinData(t *testing.T) {
 	message := `{ a: BinData(0, E3B0C44298FC1), b: BinData(0, E3B0C44298FC1) }`
 	expectMessage := `{ a: BinData(0, "E3B0C44298FC1"), b: BinData(0, "E3B0C44298FC1") }`
