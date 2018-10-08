@@ -40,6 +40,7 @@ type Value struct {
 	FuncValue    *FunctionValue `| @@`
 	ArrayValue   []*Value       `| "[" { @@ { "," @@ } } "]"`
 	Nested       *PseudoJson    `| @@ )`
+	// TODO: There's also a regexvalue :( { blah: /^.*/i }
 }
 
 type FunctionValue struct {

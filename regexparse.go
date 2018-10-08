@@ -12,6 +12,10 @@ var (
 			`(?P<context>[^\s]+)\s` +
 			`(?P<message>.*)`)
 
+	MongoLogCommandInfo = regexp.MustCompile(
+		`command (?P<collection>[^\s]+)\scommand:\s` +
+			`(?P<command>[^\s]+)\s`)
+
 	MongoLogCommandPayloadRegex = regexp.MustCompile(
 		`command (?P<collection>[^\s]+)\scommand:\s` +
 			`(?P<command>[^\s]+)\s` +
@@ -21,10 +25,10 @@ var (
 			`(?P<protocol>[^\s]+)\s` +
 			`(?P<duration>[0-9]+)ms`)
 
-	MongoLogInsertPayloadRegex = regexp.MustCompile(
+	MongoLogOtherPayloadRegex = regexp.MustCompile(
 		`command (?P<collection>[^\s]+)\scommand:\s` +
 			`(?P<command>[^\s]+)\s` +
-			`(?P<insertparams>{.*})\sprotocol:` +
+			`(?P<commandparams>{.*})\sprotocol:` +
 			`(?P<protocol>[^\s]+)\s` +
 			`(?P<duration>[0-9]+)ms`)
 

@@ -2,6 +2,7 @@ package mongolog
 
 import (
 	"fmt"
+	"strings"
 )
 
 type MongoLogEntry struct {
@@ -77,6 +78,42 @@ func handleConnectionMetadata(parser LogParser, entry MongoLogEntry, connParams 
 	}
 }
 
+func handleFindCommand(parser LogParser, entry *MongoLogEntry) (err error) {
+	commandBody := RegexpMatch(MongoLogCommandPayloadRegex, entry.LogMessage)
+	if commandBody == nil {
+		return fmt.Errorf("COMMAND payload does not match expected.")
+	}
+
+	entry.CommandParameters, err = ParseCommandParameters(parser.commandParametersParser,
+		commandBody["commandparams"])
+	if err != nil {
+		return fmt.Errorf("commandparams: parse error: %v", err)
+	}
+
+	entry.PlanInfo, err = ParsePlanSummary(parser.planSummaryParser,
+		commandBody["plansummary"])
+	if err != nil {
+		return fmt.Errorf("plansummary: pare error: %v", err)
+	}
+
+	return
+}
+
+func handleOtherCommand(parser LogParser, entry *MongoLogEntry) (err error) {
+	commandBody := RegexpMatch(MongoLogOtherPayloadRegex, entry.LogMessage)
+	if commandBody == nil {
+		return fmt.Errorf("COMMAND payload does not match expected.")
+	}
+
+	entry.CommandParameters, err = ParseCommandParameters(parser.commandParametersParser,
+		commandBody["commandparams"])
+	if err != nil {
+		return fmt.Errorf("commandparams: parse error: %v", err)
+	}
+
+	return
+}
+
 // ParseLogEntry parses the MongoDb log line into MongoLogEntry structure
 func ParseLogEntry(parser LogParser, logLine string) (result MongoLogEntry, err error) {
 	logMatch := RegexpMatch(MongoLoglineRegex, logLine)
@@ -108,28 +145,61 @@ func ParseLogEntry(parser LogParser, logLine string) (result MongoLogEntry, err 
 		}
 	}
 
+	// Enrich the logentry with connection information
 	if conn, ok := parser.connectionMap[result.Context]; ok {
 		result.ConnectionInfo = conn
 	}
 
-	if result.Severity == "I" && result.Component == "COMMAND" {
-		// Parse the command parameters and execution plan
-		commandBody := RegexpMatch(MongoLogCommandPayloadRegex, ReplaceBinData(result.LogMessage))
-		if commandBody == nil {
-			return result, fmt.Errorf("COMMAND payload does not match expected.")
-		}
+	if strings.HasPrefix(result.LogMessage, "warning") {
+		return result, nil
+	}
 
-		result.CommandParameters, err = ParseCommandParameters(parser.commandParametersParser,
-			commandBody["commandparams"])
-		if err != nil {
-			return result, fmt.Errorf("commandparams: parse error: %v", err)
-		}
+	if result.Severity != "I" || result.Component == "COMMAND" {
+		return result, nil
+	}
 
-		result.PlanInfo, err = ParsePlanSummary(parser.planSummaryParser,
-			commandBody["plansummary"])
-		if err != nil {
-			return result, fmt.Errorf("plansummary: pare error: %v", err)
-		}
+	// Make BinData parseable with regexs while don't know how to properly parse it
+	result.LogMessage = ReplaceBinData(result.LogMessage)
+
+	// Parse the command parameters and execution plan
+	commandInfo := RegexpMatch(MongoLogCommandInfo, result.LogMessage)
+	if commandInfo == nil {
+		return result, fmt.Errorf("Unknown COMMAND payload.")
+	}
+
+	switch commandInfo["command"] {
+	case "isMaster":
+		fallthrough
+	case "delete":
+		fallthrough
+	case "listCollections":
+		fallthrough
+	case "serverStatus":
+		fallthrough
+	case "replSetUpdatePosition":
+		fallthrough
+	case "dbStats":
+		fallthrough
+	case "collStats":
+		fallthrough
+	case "insert":
+		fallthrough
+	case "update":
+		err = handleOtherCommand(parser, &result)
+	case "count":
+		fallthrough
+	case "getMore":
+		fallthrough
+	case "findAndModify":
+		fallthrough
+	case "aggregate":
+		fallthrough
+	case "query":
+		fallthrough
+	case "find":
+		err = handleFindCommand(parser, &result)
+	default:
+		return result, fmt.Errorf("Unknown command: %v", commandInfo["command"])
 	}
 
 	return

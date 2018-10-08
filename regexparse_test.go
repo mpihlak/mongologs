@@ -97,7 +97,7 @@ func TestParseConnectionMetadata(t *testing.T) {
 	checkExpectedValues(t, expectValues, matches)
 }
 
-func TestParseInsertCommand(t *testing.T) {
+func TestParseOtherCommand(t *testing.T) {
 	message := `command FooDb.mycatpicscollection command: insert` +
 		` { insert: "mycatpicscollection", ordered: true, $clusterTime:` +
 		` { clusterTime: Timestamp(1538979514, 76), signature: {` +
@@ -109,7 +109,7 @@ func TestParseInsertCommand(t *testing.T) {
 		` Collection: { acquireCount: { w: 1 } }, oplog: { acquireCount: { w: 1 } } }` +
 		` protocol:op_query 12ms`
 
-	matches := RegexpMatch(MongoLogInsertPayloadRegex, message)
+	matches := RegexpMatch(MongoLogOtherPayloadRegex, message)
 
 	expectValues := map[string]string{
 		"command":    "insert",
