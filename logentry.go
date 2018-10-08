@@ -154,7 +154,7 @@ func ParseLogEntry(parser LogParser, logLine string) (result MongoLogEntry, err 
 		return result, nil
 	}
 
-	if result.Severity != "I" || result.Component == "COMMAND" {
+	if result.Severity != "I" || result.Component != "COMMAND" {
 		return result, nil
 	}
 
@@ -162,9 +162,10 @@ func ParseLogEntry(parser LogParser, logLine string) (result MongoLogEntry, err 
 	result.LogMessage = ReplaceBinData(result.LogMessage)
 
 	// Parse the command parameters and execution plan
+	// TODO: Handle "query" commands which have a slightly different layout
 	commandInfo := RegexpMatch(MongoLogCommandInfo, result.LogMessage)
 	if commandInfo == nil {
-		return result, fmt.Errorf("Unknown COMMAND payload.")
+		return result, fmt.Errorf("Command info not found")
 	}
 
 	switch commandInfo["command"] {
