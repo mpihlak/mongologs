@@ -97,6 +97,14 @@ func TestParseConnectionMetadata(t *testing.T) {
 	checkExpectedValues(t, expectValues, matches)
 }
 
+func TestParseWeirdAggregate(t *testing.T) {
+	message := `command EchoReal.barometricreadings command: aggregate { aggregate: "barometricreadings", pipeline: [ { $indexStats: {} } ], cursor: {}, $readPreference: { mode: "secondaryPreferred" }, $db: "EchoReal" } keysExamined:0 docsExamined:0 cursorExhausted:1 numYields:0 nreturned:2 reslen:540 locks:{ Global: { acquireCount: { r: 4 } }, Database: { acquireCount: { r: 2 } }, Collection: { acquireCount: { r: 2 } } } protocol:op_query 18ms`
+	matches := RegexpMatch(MongoLogCommandPayloadRegex, message)
+	if matches == nil {
+		t.Errorf("Weird aggregate didn't match our payload regex")
+	}
+}
+
 func TestParseOtherCommand(t *testing.T) {
 	message := `command FooDb.mycatpicscollection command: insert` +
 		` { insert: "mycatpicscollection", ordered: true, $clusterTime:` +
